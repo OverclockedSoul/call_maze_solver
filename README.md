@@ -1,3 +1,3 @@
 # Call Maze Solver
 
-![alt text](image.png)
+![alt text](logo.png)
