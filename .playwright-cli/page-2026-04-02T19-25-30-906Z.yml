@@ -1,0 +1,99 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - paragraph [ref=e7]: Call Maze Solver
+      - heading "Llamadas y seguimiento" [level=1] [ref=e8]
+    - generic [ref=e9]:
+      - button "Llamar" [ref=e10] [cursor=pointer]
+      - button "Historial" [active] [ref=e11] [cursor=pointer]
+      - button "Cambiar idioma" [ref=e12] [cursor=pointer]: EN
+  - main [ref=e13]:
+    - generic [ref=e80]:
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - paragraph [ref=e84]: Historial
+            - heading "Llamadas anteriores" [level=2] [ref=e85]
+            - paragraph [ref=e86]: Selecciona una llamada para revisar estado, eventos y transcripcion.
+          - button "Nueva llamada" [ref=e88] [cursor=pointer]:
+            - img [ref=e89]
+            - text: Nueva llamada
+        - generic [ref=e91]:
+          - button "Apr 2, 07:04 PM +34601278885 Failed holaaa es-ES Grabacion activa" [ref=e92] [cursor=pointer]:
+            - generic [ref=e93]:
+              - generic [ref=e94]:
+                - paragraph [ref=e95]: Apr 2, 07:04 PM
+                - heading "+34601278885" [level=3] [ref=e96]
+              - generic [ref=e97]: Failed
+            - paragraph [ref=e99]: holaaa
+            - generic [ref=e100]:
+              - generic [ref=e101]: es-ES
+              - generic [ref=e102]: Grabacion activa
+          - button "Apr 2, 01:04 PM +34601278885 Queued Ask politely whether this test call reached the intended person and then end the call. es-ES Sin grabacion" [ref=e103] [cursor=pointer]:
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - paragraph [ref=e106]: Apr 2, 01:04 PM
+                - heading "+34601278885" [level=3] [ref=e107]
+              - generic [ref=e108]: Queued
+            - paragraph [ref=e110]: Ask politely whether this test call reached the intended person and then end the call.
+            - generic [ref=e111]:
+              - generic [ref=e112]: es-ES
+              - generic [ref=e113]: Sin grabacion
+          - button "Apr 2, 01:03 PM +34601278885 Queued Ask politely whether this test call reached the intended person and then end the call. es-ES Sin grabacion" [ref=e114] [cursor=pointer]:
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - paragraph [ref=e117]: Apr 2, 01:03 PM
+                - heading "+34601278885" [level=3] [ref=e118]
+              - generic [ref=e119]: Queued
+            - paragraph [ref=e121]: Ask politely whether this test call reached the intended person and then end the call.
+            - generic [ref=e122]:
+              - generic [ref=e123]: es-ES
+              - generic [ref=e124]: Sin grabacion
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - paragraph [ref=e129]: Llamada seleccionada
+              - heading "+34601278885" [level=2] [ref=e130]
+              - paragraph [ref=e131]: holaaa
+            - generic [ref=e133]: Failed
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - paragraph [ref=e138]: Estado
+                - text: failed
+              - generic [ref=e139]:
+                - paragraph [ref=e140]: Idioma de la llamada
+                - text: es-ES
+              - generic [ref=e141]:
+                - paragraph [ref=e142]: Grabacion
+                - text: Grabacion activa
+              - generic [ref=e143]:
+                - paragraph [ref=e144]: Inicio
+                - text: Sin iniciar
+              - generic [ref=e145]:
+                - paragraph [ref=e146]: Ultima actualizacion
+                - text: Apr 2, 07:04 PM
+            - generic [ref=e147]:
+              - paragraph [ref=e148]: Motivo del fallo
+              - paragraph [ref=e149]: "Origination number is not ready D64. Outbound calls from Telnyx numbers with status `requirement-info-pending` or `requirement-info-under-review` are not allowed."
+            - generic [ref=e150]:
+              - generic [ref=e151]:
+                - generic [ref=e152]:
+                  - paragraph [ref=e153]: Eventos en vivo
+                  - paragraph [ref=e154]: Ultimos webhooks y eventos de orquestacion recibidos para esta llamada.
+                - generic [ref=e155]: "1"
+              - article [ref=e157]:
+                - generic [ref=e159]: status
+                - generic [ref=e160]: "{ \"type\": \"status\", \"status\": \"failed\" }"
+        - generic [ref=e161]:
+          - generic [ref=e162]:
+            - generic [ref=e163]:
+              - paragraph [ref=e164]: Transcripcion
+              - heading "Conversacion registrada" [level=2] [ref=e165]
+              - paragraph [ref=e166]: Aqui se almacenan las intervenciones detectadas y las respuestas generadas.
+            - generic [ref=e168]: 0 entradas
+          - generic [ref=e170]:
+            - img [ref=e172]
+            - heading "Todavia no hay transcripcion" [level=3] [ref=e174]
+            - paragraph [ref=e175]: Cuando la llamada empiece, veras aqui cada frase con su hablante.

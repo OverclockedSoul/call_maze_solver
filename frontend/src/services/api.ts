@@ -83,7 +83,7 @@ export const api = {
     history: BrowserAgentMessage[];
     ui_language: "en" | "es";
     call_language: "en-US" | "es-ES";
-    disclosure_policy: "always" | "conditional" | "never_without_review";
+    disclosure_policy?: "always" | "conditional" | "never_without_review";
     task_prompt?: string;
   }) =>
     request<{ reply: string }>("/api/agent/browser-chat", {

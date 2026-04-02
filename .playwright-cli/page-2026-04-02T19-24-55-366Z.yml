@@ -1,0 +1,45 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - paragraph [ref=e7]: Call Maze Solver
+      - heading "Llamadas y seguimiento" [level=1] [ref=e8]
+    - generic [ref=e9]:
+      - button "Llamar" [ref=e10] [cursor=pointer]
+      - button "Historial" [ref=e11] [cursor=pointer]
+      - button "Cambiar idioma" [ref=e12] [cursor=pointer]: EN
+  - main [ref=e13]:
+    - generic [ref=e34]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - paragraph [ref=e38]: Modo navegador
+          - heading "Conversacion en vivo con el agente" [level=2] [ref=e39]
+          - paragraph [ref=e40]: Habla por turnos naturales. El navegador escucha, envia tu frase al agente y reproduce la respuesta en voz alta.
+        - button "Volver a llamar" [ref=e41] [cursor=pointer]
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - paragraph [ref=e44]: Tarea actual
+          - paragraph [ref=e45]: Llama a la aseguradora y pide una actualizacion del expediente 1234 con un tono profesional.
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - paragraph [ref=e48]: Estado del modo en vivo
+            - paragraph [ref=e49]: Escuchando
+          - button "Detener" [active] [ref=e60] [cursor=pointer]
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e63]: T
+            - generic [ref=e64]: Hola, quiero practicar esta llamada con la aseguradora.
+          - generic [ref=e65]:
+            - generic [ref=e66]: A
+            - generic [ref=e67]: Entendido. Estoy listo para iniciar
+          - generic [ref=e68]:
+            - generic [ref=e69]: T
+            - generic [ref=e70]: Pide una actualizacion del expediente 1234 de forma profesional.
+          - generic [ref=e71]:
+            - generic [ref=e72]: A
+            - generic [ref=e73]: Buenos días/tardes. Llam
+          - generic [ref=e74]:
+            - generic [ref=e75]: T
+            - generic [ref=e76]: Gracias, resume en una frase lo que haras.
+          - generic [ref=e77]:
+            - generic [ref=e78]: A
+            - generic [ref=e79]: Solicitaré una actualización sobre el estado del expediente 1234.

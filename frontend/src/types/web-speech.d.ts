@@ -11,6 +11,7 @@ interface SpeechRecognitionLike extends EventTarget {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
+  onstart: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;

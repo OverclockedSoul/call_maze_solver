@@ -56,11 +56,6 @@ export function CallDetail({
           <MetaCard title={t("callLanguage")}>
             <span className="text-sm font-semibold text-ink-950">{call.call_language}</span>
           </MetaCard>
-          <MetaCard title={t("policy")}>
-            <span className="text-sm font-semibold capitalize text-ink-950">
-              {call.disclosure_policy.replace(/_/g, " ")}
-            </span>
-          </MetaCard>
           <MetaCard title={t("recording")}>
             <span className="text-sm font-semibold text-ink-950">
               {call.recording_enabled ? t("recordingOn") : t("recordingOff")}
