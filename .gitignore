@@ -21,3 +21,4 @@ data/dev-runtime/*
 !data/recordings/.gitkeep
 !data/transcripts/.gitkeep
 !data/dev-runtime/.gitkeep
+.playwright-cli/*
