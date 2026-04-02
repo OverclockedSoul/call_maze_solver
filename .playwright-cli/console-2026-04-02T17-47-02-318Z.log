@@ -1,0 +1,6 @@
+Total messages: 11 (Errors: 1, Warnings: 0)
+Returning 3 messages for level "info"
+
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5173/node_modules/.vite/deps/chunk-WERSD76P.js?v=d1e29849:21550
+[ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5173/favicon.ico:0
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5173/node_modules/.vite/deps/chunk-WERSD76P.js?v=d1e29849:21550

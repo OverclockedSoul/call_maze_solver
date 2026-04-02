@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --page-bg: #f7f3eb;
+  --page-line: rgba(107, 92, 74, 0.09);
+  --page-ink: #171411;
+  --page-muted: #7d6e60;
+  --panel-bg: rgba(255, 252, 247, 0.88);
+  --panel-border: rgba(120, 103, 82, 0.16);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--page-ink);
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(250, 244, 235, 0.9), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0)),
+    var(--page-bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(to right, transparent 0, transparent calc(100% - 1px), var(--page-line) calc(100% - 1px)),
+    linear-gradient(to bottom, transparent 0, transparent calc(100% - 1px), var(--page-line) calc(100% - 1px));
+  background-size: 96px 96px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.12), transparent 80%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(98, 82, 62, 0.18);
+}
+
+@layer components {
+  .shell-panel {
+    @apply rounded-[28px] border shadow-card backdrop-blur-sm;
+    background: var(--panel-bg);
+    border-color: var(--panel-border);
+    box-shadow:
+      0 20px 40px rgba(23, 20, 17, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  .shell-subpanel {
+    @apply rounded-[22px] border bg-white/80 shadow-card;
+    border-color: rgba(120, 103, 82, 0.14);
+    box-shadow:
+      0 8px 24px rgba(23, 20, 17, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-500;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(132, 116, 96, 0.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(132, 116, 96, 0.5);
+}
