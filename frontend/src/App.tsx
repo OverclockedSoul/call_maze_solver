@@ -286,8 +286,6 @@ function Shell() {
 
           {route === "/browser-live" ? (
             <BrowserLivePage
-              uiLanguage={uiLanguage}
-              callLanguage={callLanguage}
               onBack={() => navigate("/")}
             />
           ) : null}
@@ -501,12 +499,8 @@ function HistoryPage({
 }
 
 function BrowserLivePage({
-  uiLanguage,
-  callLanguage,
   onBack,
 }: {
-  uiLanguage: UiLanguage;
-  callLanguage: CallLanguage;
   onBack: () => void;
 }) {
   const { t } = useTranslation();
@@ -517,120 +511,279 @@ function BrowserLivePage({
   const [phase, setPhase] = useState<"idle" | "listening" | "thinking" | "speaking" | "unsupported">("idle");
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
-  const speakingRef = useRef(false);
-  const pendingRef = useRef(false);
-  const messagesRef = useRef<BrowserAgentMessage[]>([]);
-
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  const websocketRef = useRef<WebSocket | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const muteGainRef = useRef<GainNode | null>(null);
+  const awaitingAssistantRef = useRef(false);
+  const isSpeakingRef = useRef(false);
+  const turnHasSpeechRef = useRef(false);
+  const lastVoiceAtRef = useRef(0);
+  const playbackQueueRef = useRef<AudioBuffer[]>([]);
+  const playbackNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const assistantTurnCompleteRef = useRef(false);
+  const voiceDetectedRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      activeRef.current = false;
-      recognitionRef.current?.stop();
-      window.speechSynthesis.cancel();
+      void teardownAudio();
     };
   }, []);
 
   const pushMessage = (message: BrowserAgentMessage) => {
-    const next = [...messagesRef.current, message];
-    messagesRef.current = next;
-    setMessages(next);
+    setMessages((current) => [...current, message]);
   };
 
-  const startListening = () => {
-    const RecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!RecognitionCtor) {
-      setPhase("unsupported");
-      setError(t("browserMicUnavailable"));
+  const finalizeTurnIfReady = () => {
+    if (!activeRef.current || isSpeakingRef.current || !assistantTurnCompleteRef.current) return;
+    awaitingAssistantRef.current = false;
+    assistantTurnCompleteRef.current = false;
+    setPhase("listening");
+  };
+
+  const playNextBufferedAudio = () => {
+    const context = audioContextRef.current;
+    if (!context || playbackNodeRef.current || playbackQueueRef.current.length === 0) {
+      finalizeTurnIfReady();
       return;
     }
-    if (!activeRef.current || pendingRef.current || speakingRef.current) return;
 
-    recognitionRef.current?.stop();
+    const buffer = playbackQueueRef.current.shift();
+    if (!buffer) {
+      finalizeTurnIfReady();
+      return;
+    }
 
-    const recognition = new RecognitionCtor();
-    recognition.lang = callLanguage;
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.onstart = () => setPhase("listening");
-    recognition.onresult = async (event: SpeechRecognitionEventLike) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0]?.transcript ?? "")
-        .join(" ")
-        .trim();
-      if (!transcript) return;
-
-      setError(null);
-      pendingRef.current = true;
-      setPhase("thinking");
-      pushMessage({ role: "user", content: transcript });
-
-      try {
-        const result = await api.browserAgentReply({
-          message: transcript,
-          history: messagesRef.current.slice(0, -1),
-          ui_language: uiLanguage,
-          call_language: callLanguage,
-          task_prompt: taskPrompt,
-        });
-        pushMessage({ role: "assistant", content: result.reply });
-        pendingRef.current = false;
-        speakReply(result.reply, callLanguage, () => {
-          if (!activeRef.current) {
-            setPhase("idle");
-            return;
-          }
-          startListening();
-        }, () => {
-          setPhase("speaking");
-        }, () => {
-          speakingRef.current = false;
-        }, speakingRef);
-      } catch (err) {
-        pendingRef.current = false;
-        setError(err instanceof Error ? err.message : t("browserLiveError"));
-        setPhase(activeRef.current ? "idle" : "idle");
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    playbackNodeRef.current = source;
+    isSpeakingRef.current = true;
+    setPhase("speaking");
+    source.onended = () => {
+      playbackNodeRef.current = null;
+      if (playbackQueueRef.current.length === 0) {
+        isSpeakingRef.current = false;
       }
+      playNextBufferedAudio();
     };
-    recognition.onerror = () => {
-      if (!activeRef.current) return;
-      setError(t("browserRecognitionError"));
-      setPhase("idle");
-    };
-    recognition.onend = () => {
-      if (!activeRef.current || speakingRef.current || pendingRef.current) return;
-      window.setTimeout(() => {
-        if (activeRef.current) startListening();
-      }, 350);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    source.start();
   };
 
-  const startConversation = () => {
+  const enqueueAssistantAudio = async (base64Data: string, mimeType: string) => {
+    const context = audioContextRef.current;
+    if (!context) return;
+    const sampleRate = parseSampleRate(mimeType);
+    const pcmBytes = base64ToUint8Array(base64Data);
+    const audioBuffer = pcm16ToAudioBuffer(context, pcmBytes, sampleRate);
+    playbackQueueRef.current.push(audioBuffer);
+    await context.resume();
+    playNextBufferedAudio();
+  };
+
+  const sendAudioChunk = (samples: Float32Array) => {
+    const socket = websocketRef.current;
+    const context = audioContextRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN || !context) return;
+    const boostedSamples = applyInputGain(samples, 1.8);
+    socket.send(
+      JSON.stringify({
+        type: "audio_chunk",
+        sample_rate: context.sampleRate,
+        data: float32ToBase64Pcm(boostedSamples),
+      }),
+    );
+  };
+
+  const endUserTurn = () => {
+    const socket = websocketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN || awaitingAssistantRef.current) return;
+    awaitingAssistantRef.current = true;
+    turnHasSpeechRef.current = false;
+    assistantTurnCompleteRef.current = false;
+    setPhase("thinking");
+    socket.send(JSON.stringify({ type: "end_turn" }));
+  };
+
+  const handleAudioProcess = (event: AudioProcessingEvent) => {
+    if (!activeRef.current || awaitingAssistantRef.current || isSpeakingRef.current) return;
+
+    const samples = event.inputBuffer.getChannelData(0);
+    const now = performance.now();
+    const rms = computeRms(samples);
+    const speechThreshold = 0.006;
+    const lowSignalThreshold = 0.0025;
+    const silenceMs = 1100;
+
+    if (rms >= speechThreshold) {
+      turnHasSpeechRef.current = true;
+      voiceDetectedRef.current = true;
+      lastVoiceAtRef.current = now;
+      sendAudioChunk(samples);
+      return;
+    }
+
+    if (rms >= lowSignalThreshold) {
+      turnHasSpeechRef.current = true;
+      lastVoiceAtRef.current = now;
+      sendAudioChunk(samples);
+      return;
+    }
+
+    if (!turnHasSpeechRef.current) return;
+
+    sendAudioChunk(samples);
+    if (now - lastVoiceAtRef.current >= silenceMs) {
+      endUserTurn();
+    }
+  };
+
+  const setupAudioPipeline = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === "undefined") {
+      setPhase("unsupported");
+      setError(t("browserMicUnavailable"));
+      throw new Error(t("browserMicUnavailable"));
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    const context = new AudioContext();
+    await context.resume();
+
+    const source = context.createMediaStreamSource(stream);
+    const processor = context.createScriptProcessor(4096, 1, 1);
+    const muteGain = context.createGain();
+    muteGain.gain.value = 0;
+
+    processor.onaudioprocess = handleAudioProcess;
+    source.connect(processor);
+    processor.connect(muteGain);
+    muteGain.connect(context.destination);
+
+    mediaStreamRef.current = stream;
+    audioContextRef.current = context;
+    sourceNodeRef.current = source;
+    processorNodeRef.current = processor;
+    muteGainRef.current = muteGain;
+  };
+
+  const teardownAudio = async () => {
+    activeRef.current = false;
+    awaitingAssistantRef.current = false;
+    isSpeakingRef.current = false;
+    turnHasSpeechRef.current = false;
+    assistantTurnCompleteRef.current = false;
+    voiceDetectedRef.current = false;
+    playbackQueueRef.current = [];
+    playbackNodeRef.current?.stop();
+    playbackNodeRef.current = null;
+    websocketRef.current?.close();
+    websocketRef.current = null;
+    processorNodeRef.current?.disconnect();
+    sourceNodeRef.current?.disconnect();
+    muteGainRef.current?.disconnect();
+    processorNodeRef.current = null;
+    sourceNodeRef.current = null;
+    muteGainRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    if (audioContextRef.current) {
+      await audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+  };
+
+  const startConversation = async () => {
     if (!taskPrompt) {
       setError(t("browserModeRequiresTask"));
       return;
     }
-    activeRef.current = true;
-    setIsActive(true);
-    setError(null);
-    startListening();
+    try {
+      await teardownAudio();
+      const socket = api.createBrowserLiveSocket();
+      websocketRef.current = socket;
+      socket.onopen = async () => {
+        try {
+          socket.send(
+            JSON.stringify({
+              type: "start",
+              task_prompt: taskPrompt,
+              history: messages,
+            }),
+          );
+          await setupAudioPipeline();
+          activeRef.current = true;
+          setIsActive(true);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : t("browserLiveError"));
+          await teardownAudio();
+          setPhase("idle");
+          setIsActive(false);
+        }
+      };
+      socket.onmessage = (event) => {
+        const payload = JSON.parse(event.data) as {
+          type: string;
+          data?: string;
+          mime_type?: string;
+          user_text?: string;
+          assistant_text?: string;
+          detail?: string;
+        };
+
+        if (payload.type === "ready") {
+          setError(null);
+          setPhase("listening");
+          return;
+        }
+        if (payload.type === "audio_chunk" && payload.data && payload.mime_type) {
+          void enqueueAssistantAudio(payload.data, payload.mime_type);
+          return;
+        }
+        if (payload.type === "turn_complete") {
+          if (payload.user_text) pushMessage({ role: "user", content: payload.user_text });
+          if (payload.assistant_text) pushMessage({ role: "assistant", content: payload.assistant_text });
+          assistantTurnCompleteRef.current = true;
+          finalizeTurnIfReady();
+          return;
+        }
+        if (payload.type === "error") {
+          setError(payload.detail ?? t("browserLiveError"));
+          void stopConversation();
+        }
+      };
+      socket.onerror = () => {
+        setError(t("browserLiveError"));
+      };
+      socket.onclose = () => {
+        if (activeRef.current) {
+          setPhase("idle");
+          setIsActive(false);
+          activeRef.current = false;
+        }
+      };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("browserLiveError"));
+      await teardownAudio();
+      setPhase("idle");
+      setIsActive(false);
+    }
   };
 
-  const stopConversation = () => {
-    activeRef.current = false;
-    pendingRef.current = false;
-    speakingRef.current = false;
+  const stopConversation = async () => {
+    websocketRef.current?.send(JSON.stringify({ type: "stop" }));
+    await teardownAudio();
     setIsActive(false);
     setPhase("idle");
-    recognitionRef.current?.stop();
-    window.speechSynthesis.cancel();
   };
 
   if (!taskPrompt) {
@@ -696,7 +849,7 @@ function BrowserLivePage({
               <button
                 type="button"
                 data-testid="browser-live-toggle"
-                onClick={isActive ? stopConversation : startConversation}
+                onClick={() => void (isActive ? stopConversation() : startConversation())}
                 className={`inline-flex min-w-[150px] items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition ${
                   isActive
                     ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
@@ -730,6 +883,7 @@ function BrowserLivePage({
                 {messages.map((message, index) => (
                   <div
                     key={`${message.role}-${index}`}
+                    data-testid={`browser-live-message-${message.role}`}
                     className={`flex items-start gap-3 ${
                       message.role === "assistant" ? "" : "flex-row-reverse"
                     }`}
@@ -763,34 +917,60 @@ function BrowserLivePage({
   );
 }
 
-function speakReply(
-  text: string,
-  language: CallLanguage,
-  onEnd: () => void,
-  onStart: () => void,
-  onFinish: () => void,
-  speakingRef: { current: boolean },
-) {
-  if (typeof window === "undefined" || !window.speechSynthesis) {
-    onEnd();
-    return;
+function computeRms(samples: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < samples.length; i += 1) {
+    sum += samples[i] * samples[i];
   }
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = language;
-  utterance.onstart = () => {
-    speakingRef.current = true;
-    onStart();
-  };
-  utterance.onend = () => {
-    onFinish();
-    onEnd();
-  };
-  utterance.onerror = () => {
-    onFinish();
-    onEnd();
-  };
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  return Math.sqrt(sum / samples.length);
+}
+
+function float32ToBase64Pcm(samples: Float32Array): string {
+  const buffer = new ArrayBuffer(samples.length * 2);
+  const view = new DataView(buffer);
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+  }
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+function applyInputGain(samples: Float32Array, gain: number): Float32Array {
+  const boosted = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i += 1) {
+    boosted[i] = Math.max(-1, Math.min(1, samples[i] * gain));
+  }
+  return boosted;
+}
+
+function base64ToUint8Array(value: string): Uint8Array {
+  const binary = window.atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function parseSampleRate(mimeType: string): number {
+  const match = /rate=(\d+)/i.exec(mimeType);
+  return match ? Number(match[1]) : 24000;
+}
+
+function pcm16ToAudioBuffer(context: AudioContext, pcmBytes: Uint8Array, sampleRate: number): AudioBuffer {
+  const frameCount = Math.floor(pcmBytes.byteLength / 2);
+  const audioBuffer = context.createBuffer(1, frameCount, sampleRate);
+  const channelData = audioBuffer.getChannelData(0);
+  const view = new DataView(pcmBytes.buffer, pcmBytes.byteOffset, pcmBytes.byteLength);
+  for (let i = 0; i < frameCount; i += 1) {
+    channelData[i] = view.getInt16(i * 2, true) / 0x8000;
+  }
+  return audioBuffer;
 }
 
 function ClockIcon() {

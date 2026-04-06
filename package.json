@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "browser-live-smoke": "node scripts/browser-live-smoke.mjs"
+  },
   "devDependencies": {
     "playwright": "^1.59.1"
   }

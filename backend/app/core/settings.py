@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     ai_studio_api_key: str = Field(default="", alias="API_KEY_AI_STUDIO")
     llm_model: str = "gemini-2.5-flash"
+    gemini_voice: str = Field(default="Kore", alias="GEMINI_VOICE")
 
     default_ui_language: str = "es"
     default_call_language: str = "es-ES"
@@ -51,6 +52,15 @@ class Settings(BaseSettings):
     @property
     def transcript_export_path(self) -> Path:
         return Path(self.transcript_export_dir)
+
+    @property
+    def gemini_voice_name(self) -> str:
+        voice = self.gemini_voice.strip()
+        if not voice:
+            return "Kore"
+        if voice.isupper():
+            return voice.capitalize()
+        return voice
 
 
 @lru_cache

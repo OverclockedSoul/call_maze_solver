@@ -81,9 +81,6 @@ export const api = {
   browserAgentReply: (payload: {
     message: string;
     history: BrowserAgentMessage[];
-    ui_language: "en" | "es";
-    call_language: "en-US" | "es-ES";
-    disclosure_policy?: "always" | "conditional" | "never_without_review";
     task_prompt?: string;
   }) =>
     request<{ reply: string }>("/api/agent/browser-chat", {
@@ -108,4 +105,6 @@ export const api = {
     }),
   createCallSocket: (callId: string) =>
     new WebSocket(`${API_BASE_URL.replace(/^http/, "ws")}/ws/calls/${callId}`),
+  createBrowserLiveSocket: () =>
+    new WebSocket(`${API_BASE_URL.replace(/^http/, "ws")}/ws/browser-live`),
 };

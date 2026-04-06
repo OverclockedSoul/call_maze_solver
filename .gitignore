@@ -22,3 +22,5 @@ data/dev-runtime/*
 !data/transcripts/.gitkeep
 !data/dev-runtime/.gitkeep
 .playwright-cli/*
+.codex/
+.claude/
